@@ -14,3 +14,6 @@ tools/
 # Data files (keep the folder itself via placeholder)
 data/*
 !data/.gitkeep
+
+# Sample / example configuration files are always tracked
+!*.sample*

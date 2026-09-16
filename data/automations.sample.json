@@ -1,0 +1,42 @@
+[
+    {
+        "id": 1,
+        "description": "Sample Automation",
+        "sensor": "motion/hallway",
+        "startDate": "2020-12-31T23:00:00.000Z",
+        "endDate": "2099-12-30T23:00:00.000Z",
+        "weekdays": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+        ],
+        "timeStart": "07:00:00",
+        "timeEnd": "22:59:59",
+        "enabled": true,
+        "conditionProvider": "occupancy",
+        "conditions": {
+            "true": [
+                {
+                    "group": "group/room1",
+                    "requirements": [
+                        {
+                            "type": "sensor",
+                            "source": "motion/hallway",
+                            "parameter": "illuminance",
+                            "value": "40",
+                            "condition": "<="
+                        }
+                    ],
+                    "scene": "10",
+                    "duration": 20,
+                    "fadingDuration": 10,
+                    "fading": 10
+                }
+            ]
+        }
+    }
+]

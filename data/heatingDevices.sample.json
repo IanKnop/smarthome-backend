@@ -1,0 +1,14 @@
+[
+  {
+      "id": "heating/room1",
+      "group": "group/room1",
+      "sensor": "climate/room1",
+      "windows": [
+        "window/room1"
+      ],
+      "description": "Heating in Room 1",
+      "deviceIp": "192.168.178.60",
+      "ignoreForce": "0",
+      "enabled": "1"
+  }
+]

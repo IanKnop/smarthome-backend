@@ -1,0 +1,17 @@
+{
+    "baseUrl": "http://192.168.178.1",
+    "credentials": {
+        "reolink": {
+            "user": "admin",
+            "password": "password"
+        },
+        "tuya": {
+            "user": "eu1234567890123saMPL",
+            "accessKey": "adfecda34ed92fc2",
+            "secretKey": "1992dejsnc321e8b75cb1e8b1e8b78"
+        },
+        "aerodatabox": {
+            "key": "05c15d4d71cbb6ecda34edbb6p1992dejsnbb65c15d"
+        }
+    }
+}

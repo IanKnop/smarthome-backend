@@ -1,0 +1,13 @@
+[
+    {
+        "id": "tuya/device1",
+        "tuyaId": "bf8f24a432e24fa934lmou",
+        "ip": null,
+        "key": "19284s13294d-example",
+        "version": "3.3",
+        "dps": {
+            "switch_1": 1
+        },
+        "description": "Device One"
+    }
+]
