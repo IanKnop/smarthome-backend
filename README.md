@@ -1,90 +1,90 @@
 # Smart Home NexGen Backend
 
-Node.js-Backend für die Steuerung und Automatisierung eines Smart Homes. Die Anwendung besteht aus einem zentralen Modul-Loader (`modules.js`), der einzelne, unabhängige Module (`modules/*.module.js`) initialisiert und über gemeinsame Scopes (z. B. `light`, `motion`, `switch`, `climate`, ...) miteinander verdrahtet. Status- und Konfigurationsdaten liegen als JSON-Dateien im Ordner `data/`.
+Node.js backend for controlling and automating a smart home. The application consists of a central module loader (`modules.js`) that initializes individual, independent modules (`modules/*.module.js`) and wires them together via shared scopes (e.g. `light`, `motion`, `switch`, `climate`, ...). Status and configuration data is stored as JSON files in the `data/` folder.
 
-## Start
+## Getting started
 
 ```bash
 npm install
 npm start
 ```
 
-Vor dem ersten Start müssen die Beispiel-Konfigurationsdateien in `data/` (siehe unten, Dateien mit `.sample` im Namen) kopiert und mit den eigenen Zugangsdaten/Geräte-IDs befüllt werden.
+Before the first start, copy the sample configuration files in `data/` (see below, files with `.sample` in their name) and fill them in with your own credentials/device IDs.
 
-## Architektur
+## Architecture
 
-- `main.js` – Einstiegspunkt, hält globalen Status (`Global.Status`, `GroupState`, `Motion`, `Climate`, `Sensors`), lädt/speichert den Status-Cache (`data/status.cache`) und stellt Hilfsfunktionen wie `getConfig`, `getCredentials` und `setStatus` bereit.
-- `modules.js` – Lädt und initialisiert alle aktivierten Module, verteilt eingehende Nachrichten anhand ihrer `scopes` an die zuständigen Module.
-- `util.js` – Allgemeine Hilfsfunktionen (Logging, Requirement-Prüfung, Ausdrucksauswertung, ...).
-- `modules/*.module.js` – Die einzelnen Fachmodule (siehe unten).
+- `main.js` – Entry point, holds the global state (`Global.Status`, `GroupState`, `Motion`, `Climate`, `Sensors`), loads/saves the status cache (`data/status.cache`), and provides helper functions such as `getConfig`, `getCredentials` and `setStatus`.
+- `modules.js` – Loads and initializes all enabled modules, dispatching incoming messages to the responsible modules based on their `scopes`.
+- `util.js` – General helper functions (logging, requirement checks, expression parsing, ...).
+- `modules/*.module.js` – The individual feature modules (see below).
 
-Module kommunizieren über `handle(scope, sender, payload)` bzw. `handleApi(...)` für HTTP-API-Aufrufe und tauschen Nachrichten größtenteils über MQTT aus.
+Modules communicate via `handle(scope, sender, payload)` and `handleApi(...)` (for HTTP API calls), exchanging most messages over MQTT.
 
-## Module
+## Modules
 
-- **mqtt** – MQTT-Broker-Anbindung, zentrale Nachrichtenverteilung zwischen Geräten und Modulen.
-- **console** – Interaktive Kommandozeile für Debugging und administrative Befehle (`set`, `show`, `ls`, `count`, `test`, `verbose`, `cache`, `restart`, ...).
-- **log** – Protokollierung von Sensor- und Systemereignissen.
-- **http** – HTTP-Server/-Client für API-Endpunkte und ausgehende Requests (z. B. an Shelly-Geräte).
-- **websocket** – Push-Kommunikation zum Frontend (Live-Updates, z. B. Kamera-Vorschau).
-- **power** – Erfassung/Protokollierung von Energie-/Verbrauchsdaten.
-- **config** – Generischer Zugriff auf `data/config.json` (Konfigurationswerte und Zugangsdaten anderer Module).
+- **mqtt** – MQTT broker connection, central message distribution between devices and modules.
+- **console** – Interactive command line for debugging and administrative commands (`set`, `show`, `ls`, `count`, `test`, `verbose`, `cache`, `restart`, ...).
+- **log** – Logging of sensor and system events.
+- **http** – HTTP server/client for API endpoints and outgoing requests (e.g. to Shelly devices).
+- **websocket** – Push communication to the frontend (live updates, e.g. camera preview).
+- **power** – Collection/logging of power/consumption data.
+- **config** – Generic access to `data/config.json` (configuration values and other modules' credentials).
 
 ### zigbee.module.js
 
-Steuert und liest Zigbee-Geräte (Lampen, Gruppen, Sensoren, Ventile, Fenster-/Türkontakte, Schalter) über **Zigbee2MQTT**. Das Modul setzt eine lauffähige Zigbee2MQTT-Installation voraus, die per MQTT eingebunden wird – die eigentliche Funk-Kommunikation mit den Zigbee-Geräten übernimmt Zigbee2MQTT, dieses Modul verarbeitet nur die MQTT-Nachrichten (Status setzen/lesen, Szenen aufrufen, Bewegungs-/Klima-Events loggen, Timeout-Handling für zeitgesteuertes Ein-/Ausschalten).
+Controls and reads Zigbee devices (lights, groups, sensors, valves, window/door contacts, switches) via **Zigbee2MQTT**. The module requires a working Zigbee2MQTT installation, which it talks to over MQTT — the actual radio communication with the Zigbee devices is handled by Zigbee2MQTT, while this module only processes the MQTT messages (setting/reading status, recalling scenes, logging motion/climate events, timeout handling for timed on/off switching).
 
 ### heating.module.js
 
-Steuert die Heizung raumweise über **Shellys**, also WLAN-fähige Zwischenstecker/Schalter, die per HTTP-Relais-Aufruf (`http://<device-ip>/relay/0?turn=on|off`) angesprochen werden. Auf Basis von Heizprofilen (`data/heating.json`, siehe `data/heatingDevices.sample.json` für die Gerätezuordnung) wird die Heizung ein-/ausgeschaltet, abhängig von Zieltemperatur, Toleranz und optional dem Zustand zugehöriger Fensterkontakte (Heizung stoppt bei geöffnetem Fenster).
+Controls room-by-room heating via **Shellys**, i.e. WiFi-controllable switches, addressed via an HTTP relay call (`http://<device-ip>/relay/0?turn=on|off`). Based on heating profiles (`data/heating.json`, see `data/heatingDevices.sample.json` for the device mapping), heating is switched on/off depending on target temperature, tolerance, and optionally the state of associated window contacts (heating stops when a window is open).
 
 ### tuya.module.js
 
-Bindet Tuya-basierte Geräte (z. B. Steckdosen) an. Die Steuerung erfolgt primär lokal über das Tuya-Protokoll (`tuyapi`), mit automatischem Wiederverbindungsversuch bei Verbindungsabbruch. Für die Ersteinrichtung (Abgleich der Geräteliste und lokalen Schlüssel) sowie als Cloud-Fallback, falls die lokale Verbindung fehlschlägt, wird die Tuya Cloud API genutzt – **hierfür ist ein Tuya-Developer-Account** (mit Access Key/Secret Key auf der Tuya IoT Platform) erforderlich, dessen Zugangsdaten in `data/config.json` (`credentials.tuya`) hinterlegt werden. Der Gerätebestand wird in `data/tuyaDevices.json` gepflegt (Beispiel: `data/tuyaDevices.sample.json`).
+Connects Tuya-based devices (e.g. smart plugs). Control happens primarily locally via the Tuya protocol (`tuyapi`), with automatic reconnection on connection loss. The Tuya Cloud API is used for initial setup (syncing the device list and local keys) and as a cloud fallback if the local connection fails — **this requires a Tuya Developer account** (with an access key/secret key on the Tuya IoT Platform), whose credentials are stored in `data/config.json` (`credentials.tuya`). The device inventory is kept in `data/tuyaDevices.json` (sample: `data/tuyaDevices.sample.json`).
 
 ### reolink.module.js
 
-Bindet Reolink-Überwachungskameras/-Türklingeln an. Nimmt Alarm-Events (Bewegung, Klingel) entgegen und leitet sie als Vorschau-Push-Nachricht ans Frontend weiter (`transferDoorbellAlarm`); zusätzlich können Überwachungsvideos aus dem Dateisystem gelistet werden. Zugangsdaten liegen in `data/config.json` (`credentials.reolink`), die Geräteliste in `data/reolinkDevices.json` (Beispiel: `data/reolinkDevices.sample.json`).
+Connects Reolink surveillance cameras/doorbells. Receives alarm events (motion, doorbell) and forwards them as a preview push message to the frontend (`transferDoorbellAlarm`); it can also list surveillance videos from the filesystem. Credentials live in `data/config.json` (`credentials.reolink`), the device list in `data/reolinkDevices.json` (sample: `data/reolinkDevices.sample.json`).
 
 ### flight.module.js
 
-Empfängt Flugdaten von einem lokalen ADS-B-Empfänger (z. B. `dump1090`/`readsb`, JSON-Endpunkt) und reichert nahegelegene Flüge über die AeroDataBox-API mit Zusatzinformationen (Airline, Ziel, Flugzeugtyp) an – nützlich z. B. für Ansagen oder Anzeige naher Überflüge. Erfordert einen AeroDataBox-API-Key (RapidAPI) in `data/config.json` (`credentials.aerodatabox`).
+Receives flight data from a local ADS-B receiver (e.g. `dump1090`/`readsb`, JSON endpoint) and enriches nearby flights via the AeroDataBox API with additional information (airline, destination, aircraft type) — useful e.g. for announcements or displaying nearby overflights. Requires an AeroDataBox API key (RapidAPI) in `data/config.json` (`credentials.aerodatabox`).
 
 ### automation.module.js
 
-Kernmodul für regelbasierte Automatisierungen (z. B. Licht bei Bewegung, Zeitpläne, Schalter-Aktionen, Alexa-Sprachsteuerung). Automatisierungen werden in `data/automations.json` definiert (Beispiel-Struktur: `data/automations.sample.json`) und beim Start bzw. periodisch neu eingelesen (`data/automations.parsed.json` enthält die aufgelöste Fassung zu Debug-Zwecken).
+Core module for rule-based automations (e.g. light on motion, schedules, switch actions, Alexa voice control). Automations are defined in `data/automations.json` (sample structure: `data/automations.sample.json`) and re-read on startup and periodically thereafter (`data/automations.parsed.json` contains the resolved version for debugging purposes).
 
-Eine Automatisierung ist ein JSON-Objekt mit folgenden zentralen Feldern:
+An automation is a JSON object with the following core fields:
 
-- `id` – Eindeutige ID (wird bei neuen Einträgen automatisch vergeben).
-- `description` – Freitext-Beschreibung.
-- `sensor` – Auslösender Sensor/Schalter (z. B. `motion/hallway_1`, `switch/kitchen`) oder `virtual/time` für zeitgesteuerte Automatisierungen bzw. `virtual/alexa` für Sprachsteuerung.
-- `enabled` – Automatisierung aktiv (`true`/`false`/`"1"`/`"0"`).
-- `weekdays` – Array mit 7 Booleans (Sonntag–Samstag), an welchen Wochentagen die Automatisierung aktiv ist.
-- `startDate` / `endDate` – Gültigkeitszeitraum.
-- `timeStart` / `timeEnd` – Tageszeitfenster (`hh:mm:ss`), in dem die Automatisierung aktiv ist (kann über Mitternacht reichen).
-- `conditionProvider` – Bestimmt, welcher Wert aus dem eingehenden Payload als Bedingungs-Schlüssel für `conditions` verwendet wird (z. B. `occupancy`, `action`, `timeCode`; mehrere per `;` kombinierbar).
-- `conditions` – Objekt, dessen Schlüssel mit dem Wert von `conditionProvider` abgeglichen werden (auch mit Operatoren wie `<|20` für "kleiner 20"). Der Wert ist entweder eine einzelne Aktion oder ein Array von Aktionen.
-- `group` – Zigbee-Gruppe/Gerät, auf die sich die Automatisierung standardmäßig bezieht.
-- `trigger` – Optional: leitet die Verarbeitung an einen anderen Sensor weiter (z. B. um einen zweiten Bewegungsmelder wie den ersten zu behandeln).
-- `requirements` – Zusätzliche Bedingungen (z. B. Helligkeit unterhalb eines Schwellwerts, Zustand einer anderen Gruppe), die vor Ausführung geprüft werden.
+- `id` – Unique ID (assigned automatically for new entries).
+- `description` – Free-text description.
+- `sensor` – Triggering sensor/switch (e.g. `motion/hallway_1`, `switch/kitchen`), or `virtual/time` for time-based automations, or `virtual/alexa` for voice control.
+- `enabled` – Whether the automation is active (`true`/`false`/`"1"`/`"0"`).
+- `weekdays` – Array of 7 booleans (Sunday–Saturday) indicating on which weekdays the automation is active.
+- `startDate` / `endDate` – Validity period.
+- `timeStart` / `timeEnd` – Time-of-day window (`hh:mm:ss`) during which the automation is active (can span midnight).
+- `conditionProvider` – Determines which value from the incoming payload is used as the condition key into `conditions` (e.g. `occupancy`, `action`, `timeCode`; multiple can be combined with `;`).
+- `conditions` – Object whose keys are matched against the value of `conditionProvider` (operators such as `<|20` for "less than 20" are supported). The value is either a single action or an array of actions.
+- `group` – Zigbee group/device the automation targets by default.
+- `trigger` – Optional: forwards processing to another sensor (e.g. to treat a second motion sensor like the first).
+- `requirements` – Additional conditions (e.g. illuminance below a threshold, state of another group) that are checked before execution.
 
-Eine Aktion (Eintrag in `conditions`) kann u. a. enthalten:
+An action (entry in `conditions`) can contain, among others:
 
-- `scene` – Aufzurufende Szenen-ID (per Zigbee2MQTT `scene_recall`).
-- `set` – Direktes Setzen von Eigenschaften (z. B. `{ "state": "on" }`, `brightness_step`, `toggle`).
-- `http` – Ausführen eines HTTP-Requests (z. B. zur Steuerung eines Shelly-Relais oder eines internen API-Endpunkts).
-- `duration` / `fading` / `fadingDuration` – Automatisches Abschalten bzw. Abdimmen nach Ablauf der angegebenen Zeit (Sekunden).
-- `killPrevious` / `killDelay` / `killFade` – Steuerung, ob/wie vorherige, in Beziehung stehende Automatisierungen beendet werden.
+- `scene` – Scene ID to recall (via Zigbee2MQTT `scene_recall`).
+- `set` – Directly setting properties (e.g. `{ "state": "on" }`, `brightness_step`, `toggle`).
+- `http` – Executing an HTTP request (e.g. to control a Shelly relay or an internal API endpoint).
+- `duration` / `fading` / `fadingDuration` – Automatically switching off or dimming down after the given time (seconds) has elapsed.
+- `killPrevious` / `killDelay` / `killFade` – Controls whether/how previously related automations are stopped.
 
-Zeitgesteuerte Automatisierungen (`sensor: "virtual/time"`) verwenden als Bedingungs-Schlüssel spezielle Timecodes statt fester Uhrzeiten, z. B.:
+Time-based automations (`sensor: "virtual/time"`) use special timecodes as condition keys instead of fixed times, e.g.:
 
-- `AAhhmmss` – Feste Uhrzeit (z. B. `AA220000` = 22:00 Uhr).
-- `XSmmss` / `YSmmss` – Zeitversatz vor (`X`) bzw. nach (`Y`) Sonnenuntergang.
-- `XRhhmmss` / `YRhhmmss` – Zeitversatz vor (`X`) bzw. nach (`Y`) Sonnenaufgang.
+- `AAhhmmss` – Fixed time of day (e.g. `AA220000` = 10:00 PM).
+- `XSmmss` / `YSmmss` – Time offset before (`X`) or after (`Y`) sunset.
+- `XRhhmmss` / `YRhhmmss` – Time offset before (`X`) or after (`Y`) sunrise.
 
-Diese werden beim Start als `setTimeout` auf den nächsten passenden Zeitpunkt eingeplant (`initVirtualTime`).
+These are scheduled at startup as `setTimeout` calls for the next matching point in time (`initVirtualTime`).
 
-## Datenverzeichnis (`data/`)
+## Data directory (`data/`)
 
-Der Ordner `data/` enthält laufzeitgenerierte Statusdaten, Caches, Logs sowie geräte-/kontospezifische Konfigurationsdateien mit sensiblen Zugangsdaten und wird daher **nicht** versioniert (siehe `.gitignore`). Enthalten sind lediglich Beispiel-/Vorlagendateien (`*.sample.*`), anhand derer die tatsächlich benötigten Dateien (`config.json`, `automations.json`, `heatingDevices.json`, `tuyaDevices.json`, `reolinkDevices.json`, ...) angelegt werden können.
+The `data/` folder contains runtime-generated status data, caches, logs, and device-/account-specific configuration files with sensitive credentials, and is therefore **not** version-controlled (see `.gitignore`). Only sample/template files (`*.sample.*`) are included, from which the actually required files (`config.json`, `automations.json`, `heatingDevices.json`, `tuyaDevices.json`, `reolinkDevices.json`, ...) can be created.
