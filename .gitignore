@@ -1,0 +1,16 @@
+# Hidden files and folders (dotfiles)
+.*
+!.gitignore
+
+# Dependencies
+node_modules/
+
+# Debug output
+debug/
+
+# Tools
+tools/
+
+# Data files (keep the folder itself via placeholder)
+data/*
+!data/.gitkeep
