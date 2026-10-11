@@ -1,10 +1,11 @@
 {
-  "name": "smarthome-backend",
+  "name": "project",
   "version": "1.0.0",
   "description": "Smart Home Backend NGX",
   "main": "smarthome.js",
   "scripts": {
-    "start": "node smarthome.js"
+    "build": "node canary.js && tsc",
+    "prepare": "node canary.js"
   },
   "dependencies": {
     "@tuya/tuya-connector-nodejs": "^2.1.2",
